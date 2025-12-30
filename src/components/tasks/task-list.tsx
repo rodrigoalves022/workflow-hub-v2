@@ -19,9 +19,11 @@ import {
 import { CheckCircle2, Circle, Clock, MoreHorizontal, Pencil, Trash2, AlertCircle, XCircle } from "lucide-react";
 import type { Task } from "@/lib/db/schema";
 import { deleteTask } from "@/lib/db/actions/task-actions";
-import { useTransition, useState } from "react";
+import { useTransition, useState, useMemo } from "react";
 import { toast } from "@/hooks/use-toast";
 import { TaskDialog } from "./task-dialog";
+import { SearchBar } from "@/components/filters/search-bar";
+import { FilterBar } from "@/components/filters/filter-bar";
 
 interface TaskListProps {
     tasks: any[]; // Will be Task with relations
@@ -48,6 +50,40 @@ const priorityConfig = {
 export function TaskList({ tasks, projectId }: TaskListProps) {
     const [isPending, startTransition] = useTransition();
     const [editingTask, setEditingTask] = useState<any | null>(null);
+
+    // Search and filter state
+    const [searchQuery, setSearchQuery] = useState('');
+    const [filters, setFilters] = useState({
+        status: 'all',
+        priority: 'all',
+    });
+
+    // Filter tasks based on search and filters
+    const filteredTasks = useMemo(() => {
+        return tasks.filter(task => {
+            // Search filter
+            const matchesSearch = searchQuery === '' ||
+                task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                (task.description && task.description.toLowerCase().includes(searchQuery.toLowerCase()));
+
+            // Status filter
+            const matchesStatus = filters.status === 'all' || task.status === filters.status;
+
+            // Priority filter
+            const matchesPriority = filters.priority === 'all' || task.priority === filters.priority;
+
+            return matchesSearch && matchesStatus && matchesPriority;
+        });
+    }, [tasks, searchQuery, filters]);
+
+    const handleFilterChange = (key: string, value: string) => {
+        setFilters(prev => ({ ...prev, [key]: value }));
+    };
+
+    const handleClearFilters = () => {
+        setSearchQuery('');
+        setFilters({ status: 'all', priority: 'all' });
+    };
 
     const handleDelete = async (id: string) => {
         if (!confirm("Tem certeza que deseja excluir esta tarefa?")) return;
@@ -83,6 +119,40 @@ export function TaskList({ tasks, projectId }: TaskListProps) {
 
     return (
         <>
+            {/* Search and Filters */}
+            <div className="space-y-4 mb-6">
+                <SearchBar
+                    value={searchQuery}
+                    onChange={setSearchQuery}
+                    placeholder="Buscar tarefas por título ou descrição..."
+                />
+                <FilterBar
+                    filters={filters}
+                    onFilterChange={handleFilterChange}
+                    onClearFilters={handleClearFilters}
+                    statusOptions={[
+                        { value: 'all', label: 'Todos os Status' },
+                        { value: 'PENDING', label: 'Pendente' },
+                        { value: 'IN_PLANNING', label: 'Planejamento' },
+                        { value: 'IN_PROGRESS', label: 'Em Progresso' },
+                        { value: 'COMPLETED', label: 'Concluída' },
+                        { value: 'CANCELLED', label: 'Cancelada' },
+                        { value: 'BLOCKED', label: 'Bloqueada' },
+                    ]}
+                    showAssignee={false}
+                />
+                {/* Results counter */}
+                <div className="text-sm text-muted-foreground">
+                    {filteredTasks.length === tasks.length ? (
+                        <span>Exibindo todas as {tasks.length} tarefas</span>
+                    ) : (
+                        <span>
+                            Exibindo {filteredTasks.length} de {tasks.length} tarefas
+                        </span>
+                    )}
+                </div>
+            </div>
+
             <div className="border rounded-lg overflow-hidden glass-morphism">
                 <Table>
                     <TableHeader>
@@ -97,73 +167,85 @@ export function TaskList({ tasks, projectId }: TaskListProps) {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {tasks.map((task) => {
-                            const status = statusConfig[task.status as keyof typeof statusConfig];
-                            const priority = priorityConfig[task.priority as keyof typeof priorityConfig];
-                            const StatusIcon = status.icon;
+                        {filteredTasks.length === 0 ? (
+                            <TableRow>
+                                <TableCell colSpan={6} className="text-center py-12">
+                                    <div className="flex flex-col items-center text-muted-foreground">
+                                        <CheckCircle2 className="w-12 h-12 mb-3 opacity-30" />
+                                        <p className="font-medium">Nenhuma tarefa encontrada</p>
+                                        <p className="text-sm">Tente ajustar os filtros ou busca</p>
+                                    </div>
+                                </TableCell>
+                            </TableRow>
+                        ) : (
+                            filteredTasks.map((task) => {
+                                const status = statusConfig[task.status as keyof typeof statusConfig];
+                                const priority = priorityConfig[task.priority as keyof typeof priorityConfig];
+                                const StatusIcon = status.icon;
 
-                            return (
-                                <TableRow
-                                    key={task.id}
-                                    onClick={(e) => handleRowClick(task, e)}
-                                    className="cursor-pointer hover:bg-accent/50 transition-colors"
-                                >
-                                    <TableCell>
-                                        <div className={`w-2 h-2 rounded-full ${priority.color}`} />
-                                    </TableCell>
-                                    <TableCell className="font-medium">
-                                        <div>
-                                            <div className="font-semibold">{task.title}</div>
-                                            {task.description && (
-                                                <div className="text-xs text-muted-foreground line-clamp-1 truncate max-w-[250px]">
-                                                    {task.description}
-                                                </div>
-                                            )}
-                                        </div>
-                                    </TableCell>
-                                    <TableCell>
-                                        <Badge variant={status.variant} className="gap-1">
-                                            <StatusIcon className={`w-3 h-3 ${status.color}`} />
-                                            {status.label}
-                                        </Badge>
-                                    </TableCell>
-                                    <TableCell>
-                                        <span className={`text-sm font-medium ${priority.textColor}`}>
-                                            {priority.label}
-                                        </span>
-                                    </TableCell>
-                                    <TableCell className="text-sm text-muted-foreground">
-                                        {task.assignee?.name || "Não atribuído"}
-                                    </TableCell>
-                                    <TableCell className="text-sm text-muted-foreground">
-                                        {task.dueDate ? new Date(task.dueDate).toLocaleDateString('pt-BR') : "-"}
-                                    </TableCell>
-                                    <TableCell className="text-right">
-                                        <DropdownMenu>
-                                            <DropdownMenuTrigger asChild>
-                                                <Button variant="ghost" size="icon" className="h-8 w-8">
-                                                    <MoreHorizontal className="w-4 h-4" />
-                                                </Button>
-                                            </DropdownMenuTrigger>
-                                            <DropdownMenuContent align="end">
-                                                <DropdownMenuItem onClick={() => setEditingTask(task)}>
-                                                    <Pencil className="w-4 h-4 mr-2" />
-                                                    Editar
-                                                </DropdownMenuItem>
-                                                <DropdownMenuItem
-                                                    onClick={() => handleDelete(task.id)}
-                                                    disabled={isPending}
-                                                    className="text-destructive"
-                                                >
-                                                    <Trash2 className="w-4 h-4 mr-2" />
-                                                    Excluir
-                                                </DropdownMenuItem>
-                                            </DropdownMenuContent>
-                                        </DropdownMenu>
-                                    </TableCell>
-                                </TableRow>
-                            );
-                        })}
+                                return (
+                                    <TableRow
+                                        key={task.id}
+                                        onClick={(e) => handleRowClick(task, e)}
+                                        className="cursor-pointer hover:bg-accent/50 transition-colors"
+                                    >
+                                        <TableCell>
+                                            <div className={`w-2 h-2 rounded-full ${priority.color}`} />
+                                        </TableCell>
+                                        <TableCell className="font-medium">
+                                            <div>
+                                                <div className="font-semibold">{task.title}</div>
+                                                {task.description && (
+                                                    <div className="text-xs text-muted-foreground line-clamp-1 truncate max-w-[250px]">
+                                                        {task.description}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </TableCell>
+                                        <TableCell>
+                                            <Badge variant={status.variant} className="gap-1">
+                                                <StatusIcon className={`w-3 h-3 ${status.color}`} />
+                                                {status.label}
+                                            </Badge>
+                                        </TableCell>
+                                        <TableCell>
+                                            <span className={`text-sm font-medium ${priority.textColor}`}>
+                                                {priority.label}
+                                            </span>
+                                        </TableCell>
+                                        <TableCell className="text-sm text-muted-foreground">
+                                            {task.assignee?.name || "Não atribuído"}
+                                        </TableCell>
+                                        <TableCell className="text-sm text-muted-foreground">
+                                            {task.dueDate ? new Date(task.dueDate).toLocaleDateString('pt-BR') : "-"}
+                                        </TableCell>
+                                        <TableCell className="text-right">
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                                                        <MoreHorizontal className="w-4 h-4" />
+                                                    </Button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent align="end">
+                                                    <DropdownMenuItem onClick={() => setEditingTask(task)}>
+                                                        <Pencil className="w-4 h-4 mr-2" />
+                                                        Editar
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem
+                                                        onClick={() => handleDelete(task.id)}
+                                                        disabled={isPending}
+                                                        className="text-destructive"
+                                                    >
+                                                        <Trash2 className="w-4 h-4 mr-2" />
+                                                        Excluir
+                                                    </DropdownMenuItem>
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
+                                        </TableCell>
+                                    </TableRow>
+                                );
+                            })
+                        )}
                     </TableBody>
                 </Table>
             </div>

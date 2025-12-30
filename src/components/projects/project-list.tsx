@@ -132,7 +132,8 @@ export function ProjectList({ projects }: ProjectListProps) {
                     filters={filters}
                     onFilterChange={handleFilterChange}
                     onClearFilters={handleClearFilters}
-                    priorityOptions={undefined}
+                    showPriority={false}
+                    showAssignee={false}
                 />
                 {/* Results counter */}
                 <div className="text-sm text-muted-foreground">
