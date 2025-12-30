@@ -73,3 +73,15 @@ export function formatActivityAction(action: string, details?: any): string {
             return action.toLowerCase();
     }
 }
+
+export function getActivityActionLabel(action: string): string {
+    const labels: Record<string, string> = {
+        'CREATE': 'Criou',
+        'UPDATE': 'Atualizou',
+        'DELETE': 'Excluiu',
+        'COMMENT': 'Comentou',
+        'STATUS_CHANGE': 'Alterou status',
+    };
+
+    return labels[action] || action;
+}
