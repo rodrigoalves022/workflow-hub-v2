@@ -156,7 +156,7 @@ Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para ma
 
 **Rodrigo Silva**
 
-- GitHub: [@seu-usuario](https://github.com/seu-usuario)
+- GitHub: [@rodrigoalves022](https://github.com/rodrigoalves022)
 
 ## 🙏 Agradecimentos
 
