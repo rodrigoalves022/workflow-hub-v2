@@ -21,8 +21,10 @@ import {
 import { MoreVertical, Pencil, Trash2, FolderOpen } from "lucide-react";
 import { deleteProject } from '@/lib/db/actions/project-actions';
 import { toast } from '@/hooks/use-toast';
-import { useTransition, useState } from 'react';
+import { useTransition, useState, useMemo } from 'react';
 import { ProjectDialog } from './project-dialog';
+import { SearchBar } from '@/components/filters/search-bar';
+import { FilterBar } from '@/components/filters/filter-bar';
 
 interface ProjectListProps {
     projects: any[];
@@ -48,6 +50,37 @@ export function ProjectList({ projects }: ProjectListProps) {
     const router = useRouter();
     const [isPending, startTransition] = useTransition();
     const [editingProject, setEditingProject] = useState<any | null>(null);
+
+    // Search and filter state
+    const [searchQuery, setSearchQuery] = useState('');
+    const [filters, setFilters] = useState({
+        status: 'all',
+        priority: 'all',
+    });
+
+    // Filter projects based on search and filters
+    const filteredProjects = useMemo(() => {
+        return projects.filter(project => {
+            // Search filter
+            const matchesSearch = searchQuery === '' ||
+                project.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                (project.description && project.description.toLowerCase().includes(searchQuery.toLowerCase()));
+
+            // Status filter
+            const matchesStatus = filters.status === 'all' || project.status === filters.status;
+
+            return matchesSearch && matchesStatus;
+        });
+    }, [projects, searchQuery, filters]);
+
+    const handleFilterChange = (key: string, value: string) => {
+        setFilters(prev => ({ ...prev, [key]: value }));
+    };
+
+    const handleClearFilters = () => {
+        setSearchQuery('');
+        setFilters({ status: 'all', priority: 'all' });
+    };
 
     const handleDelete = async (id: string, name: string, e: React.MouseEvent) => {
         e.stopPropagation();
@@ -88,6 +121,31 @@ export function ProjectList({ projects }: ProjectListProps) {
 
     return (
         <>
+            {/* Search and Filters */}
+            <div className="space-y-4 mb-6">
+                <SearchBar
+                    value={searchQuery}
+                    onChange={setSearchQuery}
+                    placeholder="Buscar projetos por nome ou descrição..."
+                />
+                <FilterBar
+                    filters={filters}
+                    onFilterChange={handleFilterChange}
+                    onClearFilters={handleClearFilters}
+                    priorityOptions={undefined}
+                />
+                {/* Results counter */}
+                <div className="text-sm text-muted-foreground">
+                    {filteredProjects.length === projects.length ? (
+                        <span>Exibindo todos os {projects.length} projetos</span>
+                    ) : (
+                        <span>
+                            Exibindo {filteredProjects.length} de {projects.length} projetos
+                        </span>
+                    )}
+                </div>
+            </div>
+
             <div className="rounded-lg border bg-card">
                 <Table>
                     <TableHeader>
@@ -99,76 +157,88 @@ export function ProjectList({ projects }: ProjectListProps) {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {projects.map((project) => (
-                            <TableRow
-                                key={project.id}
-                                onClick={(e) => handleRowClick(project.id, e)}
-                                className="cursor-pointer hover:bg-muted/50 transition-colors"
-                            >
-                                <TableCell>
-                                    <Link
-                                        href={`/projects/${project.id}`}
-                                        className="flex items-center gap-3 w-full"
-                                    >
-                                        <div
-                                            className="w-10 h-10 rounded-lg flex items-center justify-center text-white flex-shrink-0"
-                                            style={{ backgroundColor: project.color || '#3b82f6' }}
-                                        >
-                                            {project.icon || '📁'}
-                                        </div>
-                                        <div className="flex-1 min-w-0">
-                                            <div className="font-medium">{project.name}</div>
-                                            {project.description && (
-                                                <div className="text-sm text-muted-foreground truncate">
-                                                    {project.description}
-                                                </div>
-                                            )}
-                                        </div>
-                                    </Link>
-                                </TableCell>
-                                <TableCell>
-                                    <Badge variant={statusVariants[project.status] || "default"}>
-                                        {statusLabels[project.status as keyof typeof statusLabels]}
-                                    </Badge>
-                                </TableCell>
-                                <TableCell className="text-muted-foreground">
-                                    {new Date(project.createdAt).toLocaleDateString('pt-BR')}
-                                </TableCell>
-                                <TableCell>
-                                    <DropdownMenu>
-                                        <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                                            <Button variant="ghost" size="icon" className="h-8 w-8">
-                                                <MoreVertical className="h-4 w-4" />
-                                            </Button>
-                                        </DropdownMenuTrigger>
-                                        <DropdownMenuContent align="end">
-                                            <DropdownMenuItem onClick={(e) => {
-                                                e.stopPropagation();
-                                                router.push(`/projects/${project.id}`);
-                                            }}>
-                                                <FolderOpen className="mr-2 h-4 w-4" />
-                                                Ver Detalhes
-                                            </DropdownMenuItem>
-                                            <DropdownMenuItem onClick={(e) => {
-                                                e.stopPropagation();
-                                                setEditingProject(project);
-                                            }}>
-                                                <Pencil className="mr-2 h-4 w-4" />
-                                                Editar
-                                            </DropdownMenuItem>
-                                            <DropdownMenuItem
-                                                onClick={(e) => handleDelete(project.id, project.name, e)}
-                                                className="text-destructive"
-                                                disabled={isPending}
-                                            >
-                                                <Trash2 className="mr-2 h-4 w-4" />
-                                                Excluir
-                                            </DropdownMenuItem>
-                                        </DropdownMenuContent>
-                                    </DropdownMenu>
+                        {filteredProjects.length === 0 ? (
+                            <TableRow>
+                                <TableCell colSpan={4} className="text-center py-12">
+                                    <div className="flex flex-col items-center text-muted-foreground">
+                                        <FolderOpen className="w-12 h-12 mb-3 opacity-30" />
+                                        <p className="font-medium">Nenhum projeto encontrado</p>
+                                        <p className="text-sm">Tente ajustar os filtros ou busca</p>
+                                    </div>
                                 </TableCell>
                             </TableRow>
-                        ))}
+                        ) : (
+                            filteredProjects.map((project) => (
+                                <TableRow
+                                    key={project.id}
+                                    onClick={(e) => handleRowClick(project.id, e)}
+                                    className="cursor-pointer hover:bg-muted/50 transition-colors"
+                                >
+                                    <TableCell>
+                                        <Link
+                                            href={`/projects/${project.id}`}
+                                            className="flex items-center gap-3 w-full"
+                                        >
+                                            <div
+                                                className="w-10 h-10 rounded-lg flex items-center justify-center text-white flex-shrink-0"
+                                                style={{ backgroundColor: project.color || '#3b82f6' }}
+                                            >
+                                                {project.icon || '📁'}
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <div className="font-medium">{project.name}</div>
+                                                {project.description && (
+                                                    <div className="text-sm text-muted-foreground truncate">
+                                                        {project.description}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </Link>
+                                    </TableCell>
+                                    <TableCell>
+                                        <Badge variant={statusVariants[project.status] || "default"}>
+                                            {statusLabels[project.status as keyof typeof statusLabels]}
+                                        </Badge>
+                                    </TableCell>
+                                    <TableCell className="text-muted-foreground">
+                                        {new Date(project.createdAt).toLocaleDateString('pt-BR')}
+                                    </TableCell>
+                                    <TableCell>
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                                                <Button variant="ghost" size="icon" className="h-8 w-8">
+                                                    <MoreVertical className="h-4 w-4" />
+                                                </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent align="end">
+                                                <DropdownMenuItem onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    router.push(`/projects/${project.id}`);
+                                                }}>
+                                                    <FolderOpen className="mr-2 h-4 w-4" />
+                                                    Ver Detalhes
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setEditingProject(project);
+                                                }}>
+                                                    <Pencil className="mr-2 h-4 w-4" />
+                                                    Editar
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem
+                                                    onClick={(e) => handleDelete(project.id, project.name, e)}
+                                                    className="text-destructive"
+                                                    disabled={isPending}
+                                                >
+                                                    <Trash2 className="mr-2 h-4 w-4" />
+                                                    Excluir
+                                                </DropdownMenuItem>
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
+                                    </TableCell>
+                                </TableRow>
+                            ))
+                        )}
                     </TableBody>
                 </Table>
             </div>
