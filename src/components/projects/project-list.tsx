@@ -21,7 +21,8 @@ import {
 import { MoreVertical, Pencil, Trash2, FolderOpen } from "lucide-react";
 import { deleteProject } from '@/lib/db/actions/project-actions';
 import { toast } from '@/hooks/use-toast';
-import { useTransition } from 'react';
+import { useTransition, useState } from 'react';
+import { ProjectDialog } from './project-dialog';
 
 interface ProjectListProps {
     projects: any[];
@@ -46,6 +47,7 @@ const statusVariants: Record<string, "default" | "secondary" | "destructive" | "
 export function ProjectList({ projects }: ProjectListProps) {
     const router = useRouter();
     const [isPending, startTransition] = useTransition();
+    const [editingProject, setEditingProject] = useState<any | null>(null);
 
     const handleDelete = async (id: string, name: string, e: React.MouseEvent) => {
         e.stopPropagation();
@@ -85,82 +87,102 @@ export function ProjectList({ projects }: ProjectListProps) {
     }
 
     return (
-        <div className="rounded-lg border bg-card">
-            <Table>
-                <TableHeader>
-                    <TableRow>
-                        <TableHead>Nome</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Criado em</TableHead>
-                        <TableHead className="w-[100px]">Ações</TableHead>
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    {projects.map((project) => (
-                        <TableRow
-                            key={project.id}
-                            onClick={(e) => handleRowClick(project.id, e)}
-                            className="cursor-pointer hover:bg-muted/50 transition-colors"
-                        >
-                            <TableCell>
-                                <Link
-                                    href={`/projects/${project.id}`}
-                                    className="flex items-center gap-3 w-full"
-                                >
-                                    <div
-                                        className="w-10 h-10 rounded-lg flex items-center justify-center text-white flex-shrink-0"
-                                        style={{ backgroundColor: project.color || '#3b82f6' }}
-                                    >
-                                        {project.icon || '📁'}
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                        <div className="font-medium">{project.name}</div>
-                                        {project.description && (
-                                            <div className="text-sm text-muted-foreground truncate">
-                                                {project.description}
-                                            </div>
-                                        )}
-                                    </div>
-                                </Link>
-                            </TableCell>
-                            <TableCell>
-                                <Badge variant={statusVariants[project.status] || "default"}>
-                                    {statusLabels[project.status as keyof typeof statusLabels]}
-                                </Badge>
-                            </TableCell>
-                            <TableCell className="text-muted-foreground">
-                                {new Date(project.createdAt).toLocaleDateString('pt-BR')}
-                            </TableCell>
-                            <TableCell>
-                                <DropdownMenu>
-                                    <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                                        <Button variant="ghost" size="icon" className="h-8 w-8">
-                                            <MoreVertical className="h-4 w-4" />
-                                        </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end">
-                                        <DropdownMenuItem onClick={(e) => {
-                                            e.stopPropagation();
-                                            router.push(`/projects/${project.id}`);
-                                        }}>
-                                            <Pencil className="mr-2 h-4 w-4" />
-                                            Ver Detalhes
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem
-                                            onClick={(e) => handleDelete(project.id, project.name, e)}
-                                            className="text-destructive"
-                                            disabled={isPending}
-                                        >
-                                            <Trash2 className="mr-2 h-4 w-4" />
-                                            Excluir
-                                        </DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                </DropdownMenu>
-                            </TableCell>
+        <>
+            <div className="rounded-lg border bg-card">
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>Nome</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead>Criado em</TableHead>
+                            <TableHead className="w-[100px]">Ações</TableHead>
                         </TableRow>
-                    ))}
-                </TableBody>
-            </Table>
-        </div>
+                    </TableHeader>
+                    <TableBody>
+                        {projects.map((project) => (
+                            <TableRow
+                                key={project.id}
+                                onClick={(e) => handleRowClick(project.id, e)}
+                                className="cursor-pointer hover:bg-muted/50 transition-colors"
+                            >
+                                <TableCell>
+                                    <Link
+                                        href={`/projects/${project.id}`}
+                                        className="flex items-center gap-3 w-full"
+                                    >
+                                        <div
+                                            className="w-10 h-10 rounded-lg flex items-center justify-center text-white flex-shrink-0"
+                                            style={{ backgroundColor: project.color || '#3b82f6' }}
+                                        >
+                                            {project.icon || '📁'}
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <div className="font-medium">{project.name}</div>
+                                            {project.description && (
+                                                <div className="text-sm text-muted-foreground truncate">
+                                                    {project.description}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </Link>
+                                </TableCell>
+                                <TableCell>
+                                    <Badge variant={statusVariants[project.status] || "default"}>
+                                        {statusLabels[project.status as keyof typeof statusLabels]}
+                                    </Badge>
+                                </TableCell>
+                                <TableCell className="text-muted-foreground">
+                                    {new Date(project.createdAt).toLocaleDateString('pt-BR')}
+                                </TableCell>
+                                <TableCell>
+                                    <DropdownMenu>
+                                        <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                                                <MoreVertical className="h-4 w-4" />
+                                            </Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent align="end">
+                                            <DropdownMenuItem onClick={(e) => {
+                                                e.stopPropagation();
+                                                router.push(`/projects/${project.id}`);
+                                            }}>
+                                                <FolderOpen className="mr-2 h-4 w-4" />
+                                                Ver Detalhes
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem onClick={(e) => {
+                                                e.stopPropagation();
+                                                setEditingProject(project);
+                                            }}>
+                                                <Pencil className="mr-2 h-4 w-4" />
+                                                Editar
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem
+                                                onClick={(e) => handleDelete(project.id, project.name, e)}
+                                                className="text-destructive"
+                                                disabled={isPending}
+                                            >
+                                                <Trash2 className="mr-2 h-4 w-4" />
+                                                Excluir
+                                            </DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
+                                </TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
+            </div>
+
+            {/* Project Edit Dialog */}
+            {
+                editingProject && (
+                    <ProjectDialog
+                        project={editingProject}
+                        open={!!editingProject}
+                        onOpenChange={(open) => !open && setEditingProject(null)}
+                    />
+                )
+            }
+        </>
     );
 }
