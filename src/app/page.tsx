@@ -38,14 +38,16 @@ export default async function Home() {
                 </div>
 
                 <div className="flex gap-4">
-                    <Link href="/projects">
+                    <Link href="/dashboard">
                         <Button size="lg" className="rounded-full shadow-lg shadow-primary/20 hover:scale-105 transition-transform">
+                            Ver Dashboard
+                        </Button>
+                    </Link>
+                    <Link href="/projects">
+                        <Button size="lg" variant="outline" className="rounded-full">
                             Gerenciar Projetos
                         </Button>
                     </Link>
-                    <Button size="lg" variant="outline" className="rounded-full">
-                        Ver Documentação
-                    </Button>
                 </div>
 
                 <div className="text-sm text-muted-foreground">

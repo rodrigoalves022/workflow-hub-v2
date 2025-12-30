@@ -2,7 +2,7 @@ import { getProjects } from "@/lib/db/actions/project-actions";
 import { ProjectList } from "@/components/projects/project-list";
 import { ProjectDialog } from "@/components/projects/project-dialog";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, LayoutDashboard } from "lucide-react";
+import { ArrowLeft, LayoutDashboard, LayoutGrid } from "lucide-react";
 import Link from "next/link";
 
 export default async function ProjectsPage() {
@@ -14,13 +14,13 @@ export default async function ProjectsPage() {
             <header className="border-b bg-card/50 backdrop-blur-md sticky top-0 z-10">
                 <div className="px-4 h-16 flex items-center justify-between">
                     <div className="flex items-center gap-4">
-                        <Link href="/">
+                        <Link href="/dashboard">
                             <Button variant="ghost" size="icon" className="rounded-full">
                                 <ArrowLeft className="w-5 h-5" />
                             </Button>
                         </Link>
                         <div className="flex items-center gap-2">
-                            <LayoutDashboard className="w-6 h-6 text-primary" />
+                            <LayoutGrid className="w-6 h-6 text-primary" />
                             <h1 className="text-xl font-bold tracking-tight">Projetos</h1>
                         </div>
                     </div>
