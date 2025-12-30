@@ -4,6 +4,7 @@ import { ProjectDialog } from "@/components/projects/project-dialog";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, LayoutDashboard, LayoutGrid } from "lucide-react";
 import Link from "next/link";
+import { UserMenu } from "@/components/user/user-menu";
 
 export default async function ProjectsPage() {
     const projects = await getProjects();
@@ -24,7 +25,10 @@ export default async function ProjectsPage() {
                             <h1 className="text-xl font-bold tracking-tight">Projetos</h1>
                         </div>
                     </div>
-                    <ProjectDialog />
+                    <div className="flex items-center gap-2">
+                        <ProjectDialog />
+                        <UserMenu />
+                    </div>
                 </div>
             </header>
 

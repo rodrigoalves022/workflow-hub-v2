@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { TaskList } from "@/components/tasks/task-list";
 import { TaskDialog } from "@/components/tasks/task-dialog";
+import { UserMenu } from "@/components/user/user-menu";
 import { db, projects, tasks } from "@/lib/db";
 import { eq, desc } from "drizzle-orm";
 
@@ -99,6 +100,7 @@ export default async function ProjectDetailPage({
                                 <Plus className="w-4 h-4" /> Nova Tarefa
                             </Button>
                         </TaskDialog>
+                        <UserMenu />
                     </div>
                 </div>
             </header>

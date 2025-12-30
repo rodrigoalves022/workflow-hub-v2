@@ -5,6 +5,7 @@ import { ActiveProjects } from "@/components/dashboard/active-projects";
 import { Button } from "@/components/ui/button";
 import { Plus, LayoutDashboard } from "lucide-react";
 import Link from "next/link";
+import { UserMenu } from "@/components/user/user-menu";
 
 export default async function DashboardPage() {
     const [statsResult, activityResult, projectsResult] = await Promise.all([
@@ -48,6 +49,7 @@ export default async function DashboardPage() {
                                 Novo Projeto
                             </Button>
                         </Link>
+                        <UserMenu />
                     </div>
                 </div>
             </header>
